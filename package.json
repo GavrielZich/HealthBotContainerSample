@@ -6,9 +6,14 @@
   "license": "MIT",
   "repository": "https://github.com/Microsoft/HealthBotContainerSample.git",
   "engines": {
-    "node": "20.x"
+    "node": ">=18.0.0"
   },
   "dependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^17.0.83",
+    "@types/react-dom": "^17.0.25",
+    "@types/use-sync-external-store": "^0.0.6",
+    "@vitejs/plugin-react": "^4.3.4",
     "botframework-webchat": "4.19.1",
     "botframework-webchat-fluent-theme": "4.19.1",
     "cookie-parser": "^1.4.5",
@@ -20,13 +25,17 @@
     "node-fetch": "^2.6.7",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "use-sync-external-store": "^1.2.2"
+    "typescript": "^5.6.3",
+    "use-sync-external-store": "^1.2.2",
+    "vite": "^5.4.11"
   },
   "scripts": {
     "dev": "vite",
     "dev:server": "node server.js",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
+    "postinstall": "npm run build",
+    "prestart": "npm install && npm run build",
     "start": "node server.js",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -35,14 +44,7 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^12.1.5",
     "@testing-library/user-event": "^14.5.2",
-    "@types/node": "^22.10.0",
-    "@types/react": "^17.0.83",
-    "@types/react-dom": "^17.0.25",
-    "@types/use-sync-external-store": "^0.0.6",
-    "@vitejs/plugin-react": "^4.3.4",
     "happy-dom": "^20.0.2",
-    "typescript": "^5.6.3",
-    "vite": "^5.4.11",
     "vitest": "^3.2.7"
   }
 }
