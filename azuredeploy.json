@@ -118,6 +118,10 @@
                         "value": "[parameters('webchatSecret')]"
                         },
                         {
+                        "name": "WEBSITE_NODE_DEFAULT_VERSION",
+                        "value": "[variables('nodeVersion')]"
+                        },
+                        {
                         "name": "SCM_DO_BUILD_DURING_DEPLOYMENT",
                         "value": "true"
                         }
