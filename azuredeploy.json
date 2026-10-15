@@ -89,7 +89,7 @@
         "workerSize": "0",
         "workerSizeId": "0",
         "hostingEnvironment": "",
-        "nodeVersion": "~16",
+        "nodeVersion": "~20",
         "currentStack": "node"
     },
     "resources": [
@@ -137,7 +137,7 @@
                         "[resourceId('Microsoft.Web/sites', variables('linuxSiteName'))]"
                     ],
                     "properties": {
-                        "repoUrl": "[parameters('repoURL')]",
+                        "repoUrl": "[parameters('repoUrl')]",
                         "branch": "[parameters('branch')]",
                         "isManualIntegration": true
                     }
@@ -211,7 +211,7 @@
                         "[resourceId('Microsoft.Web/sites', variables('windowsSiteName'))]"
                     ],
                     "properties": {
-                        "repoUrl": "[parameters('repoURL')]",
+                        "repoUrl": "[parameters('repoUrl')]",
                         "branch": "[parameters('branch')]",
                         "isManualIntegration": true
                     }
