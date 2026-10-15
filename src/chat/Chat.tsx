@@ -1,90 +1,92 @@
 import { useEffect, useMemo } from 'react';
-import ReactWebChat, { createDirectLine } from 'botframework-webchat';
-import { createController } from '../streaming';
-import { createChatStore } from './createChatStore';
-import { activityMiddleware } from './activityMiddleware';
+import ReactWebChat, {
+  createDirectLine,
+  createBrowserWebSpeechPonyfillFactory,
+} from 'botframework-webchat';
+import { FluentThemeProvider } from 'botframework-webchat-fluent-theme';
+import { createController } from '../streaming/controller/streaming';
+import { createChatStore } from '../streaming/middleware/chatStore';
+import { reportRecognitionErrors } from '../streaming/middleware/dictationMiddleware';
+import { activityMiddleware } from '../streaming/middleware/activityMiddleware';
+import { createLocaleController } from '../streaming/locale/locale';
+import { EXPIRED_TOKEN_STATUS } from '../components/Chat/chatOptions';
+import { adaptiveCardsHostConfig, styleOptions } from '../theme/theme';
+import { sendBoxMiddleware } from '../components/SendBox/sendBoxMiddleware';
 import { getUserLocation } from './geolocation';
-import type { TokenPayload, User } from '../types';
+import type { TokenPayload } from '../types';
 
 interface ChatProps {
   tokenPayload: TokenPayload;
   jsonWebToken: string;
 }
 
-// Web Chat is customized without forking its source: appearance is driven entirely
-// through styleOptions.
-const styleOptions = {
-  botAvatarImage:
-    'https://docs.microsoft.com/en-us/azure/bot-service/v4sdk/media/logo_bot.svg?view=azure-bot-service-4.0',
-  // botAvatarInitials: '',
-  // userAvatarImage: '',
-  hideSendBox: false /* set to true to hide the send box from the view */,
-  botAvatarInitials: 'Bot',
-  userAvatarInitials: 'You',
-  backgroundColor: '#F8F8F8',
-  // Single source of truth for the chat typeface. The reasoning trace mirrors this exact
-  // value (see --has-font in ReasoningDisclosure.css) so it reads in the same font as the
-  // answer instead of the page default.
-  primaryFont: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
-  // Frameless bot bubbles: the redesigned answer reads as page text, not a boxed card.
-  // Only the bot side is flattened; the `bubbleFromUser*` defaults keep the user's
-  // right-side bubble intact.
-  bubbleBackground: 'transparent',
-  bubbleBorderColor: 'transparent',
-  bubbleBorderWidth: 0,
-  bubbleBorderRadius: 0,
-};
-
-// Suppress Web Chat's built-in typing indicator (the grey pill of dots it renders for
-// the bot's `typing` activities). The redesigned A1 "thinking" chip is our single, richer
-// progress signal, so returning `false` here removes the duplicate default one.
-const typingIndicatorMiddleware = () => () => () => false;
-
 export default function Chat({ tokenPayload, jsonWebToken }: ChatProps) {
-  // Direct Line connection and the Redux store are created once per conversation.
-  const { directLine, store } = useMemo(() => {
-    const user: User = {
-      id: tokenPayload.userId,
-      name: tokenPayload.userName,
-      locale: tokenPayload.locale,
-    };
+  const { directLine, store, conversation, locale, webSpeechPonyfillFactory } =
+    useMemo(() => {
+      const localeController = createLocaleController(
+        tokenPayload.locale ?? 'en-US',
+      );
 
-    const domain = tokenPayload.directLineURI
-      ? 'https://' + tokenPayload.directLineURI + '/v3/directline'
-      : undefined;
+      // The backend hands back a bare host; Direct Line needs the full endpoint.
+      const domain = tokenPayload.directLineURI
+        ? 'https://' + tokenPayload.directLineURI + '/v3/directline'
+        : undefined;
+      const nextConversation = { token: tokenPayload.connectorToken, domain };
 
-    const nextDirectLine = createDirectLine({
-      token: tokenPayload.connectorToken,
-      domain,
-    });
+      const nextDirectLine = createDirectLine(nextConversation);
+      const streaming = createController();
+      const nextStore = createChatStore({
+        streaming,
+        locale: localeController,
+        jsonWebToken,
+        requestLocation: getUserLocation,
+        devTools: import.meta.env.DEV,
+      });
 
-    const streaming = createController();
-    const nextStore = createChatStore({
-      streaming,
-      user,
-      jsonWebToken,
-      requestLocation: getUserLocation,
-      devTools: import.meta.env.DEV,
-    });
+      return {
+        directLine: nextDirectLine,
+        store: nextStore,
+        conversation: nextConversation,
+        locale: localeController,
+        // MicrophoneButton renders only when the browser supports speech, so enabling the
+        // ponyfill here degrades gracefully to a no-op on unsupported browsers.
+        webSpeechPonyfillFactory: reportRecognitionErrors(
+          createBrowserWebSpeechPonyfillFactory() as never,
+          nextStore.dispatch,
+        ),
+      };
+    }, [tokenPayload, jsonWebToken]);
 
-    return { directLine: nextDirectLine, store: nextStore };
-  }, [tokenPayload, jsonWebToken]);
+  useEffect(() => {
+    const subscription = directLine.connectionStatus$.subscribe(
+      (status: number) => {
+        if (status === EXPIRED_TOKEN_STATUS) {
+          directLine.reconnect(conversation as never);
+        }
+      },
+    );
+    return () => subscription.unsubscribe();
+  }, [directLine, conversation]);
 
-  // Direct Line holds a live polling/WebSocket connection. Close it when the
-  // component unmounts or the connection is replaced (new token) so we don't leak
-  // sockets or leave a second connection re-firing InitConversation.
+  // Direct Line holds a live polling/WebSocket connection. Close it when the component
+  // unmounts or the connection is replaced (new token) so we don't leak sockets or leave a
+  // second connection re-firing InitConversation.
   useEffect(() => () => directLine.end(), [directLine]);
 
   return (
-    <ReactWebChat
-      directLine={directLine}
-      store={store}
-      styleOptions={styleOptions}
-      activityMiddleware={activityMiddleware as never}
-      typingIndicatorMiddleware={typingIndicatorMiddleware as never}
-      userID={tokenPayload.userId}
-      username={tokenPayload.userName}
-      locale={tokenPayload.locale}
-    />
+    <FluentThemeProvider>
+      <ReactWebChat
+        directLine={directLine}
+        store={store}
+        styleOptions={styleOptions}
+        adaptiveCardsHostConfig={adaptiveCardsHostConfig}
+        activityMiddleware={activityMiddleware as never}
+        sendBoxMiddleware={sendBoxMiddleware as never}
+        userID={tokenPayload.userId}
+        username={tokenPayload.userName}
+        locale={locale.get()}
+        webSpeechPonyfillFactory={webSpeechPonyfillFactory as never}
+      />
+    </FluentThemeProvider>
   );
 }

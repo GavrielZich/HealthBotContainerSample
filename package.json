@@ -14,10 +14,13 @@
     "@types/react-dom": "^17.0.25",
     "@vitejs/plugin-react": "^4.3.4",
     "botframework-webchat": "4.19.1",
+    "botframework-webchat-fluent-theme": "4.19.1",
     "cookie-parser": "^1.4.5",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "jsonwebtoken": "^9.0.2",
+    "micromark": "4.0.2",
+    "micromark-extension-gfm": "3.0.0",
     "node-fetch": "^2.6.7",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
@@ -28,15 +31,20 @@
   "scripts": {
     "dev": "vite",
     "dev:server": "node server.js",
-    "gallery": "GALLERY=1 vite --open /gallery.html",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "postinstall": "npm run build",
     "prestart": "npm install && npm run build",
     "start": "node server.js",
-    "test": "node --test"
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
-    "@types/use-sync-external-store": "^0.0.6"
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^12.1.5",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/use-sync-external-store": "^0.0.6",
+    "happy-dom": "^20.0.2",
+    "vitest": "^3.2.7"
   }
 }
