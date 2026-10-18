@@ -32,6 +32,16 @@ export function createController(deps: Timers = defaultDeps): StreamController {
   const reveal = createRevealClock(deps);
   const expiry = createExpiryState();
   let lastFrameKey: string | null = null;
+  let streamSeen = false;
+  const streamListeners = new Set<() => void>();
+
+  function markStreamSeen() {
+    if (streamSeen) {
+      return;
+    }
+    streamSeen = true;
+    streamListeners.forEach((listener) => listener());
+  }
 
   function cancelReveal() {
     reveal.reset();
@@ -158,6 +168,7 @@ export function createController(deps: Timers = defaultDeps): StreamController {
 
     const stream = parseStreamEnvelope(incoming);
     if (stream) {
+      markStreamSeen();
       if (run.answered) {
         beginTurn(run);
         state = createInitialMessageState();
@@ -233,5 +244,10 @@ export function createController(deps: Timers = defaultDeps): StreamController {
   return {
     resetForNewTurn,
     handleIncoming,
+    hasSeenStream: () => streamSeen,
+    onFirstStream(listener) {
+      streamListeners.add(listener);
+      return () => streamListeners.delete(listener);
+    },
   };
 }

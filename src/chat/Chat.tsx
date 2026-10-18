@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ReactWebChat, {
   createDirectLine,
   createBrowserWebSpeechPonyfillFactory,
@@ -15,13 +15,16 @@ import { sendBoxMiddleware } from '../components/SendBox/sendBoxMiddleware';
 import { getUserLocation } from './geolocation';
 import type { TokenPayload } from '../types';
 
+// A streaming bot shows its progress in the chat, so typing dots would only duplicate it.
+const hideTypingIndicator = () => () => () => false;
+
 interface ChatProps {
   tokenPayload: TokenPayload;
   jsonWebToken: string;
 }
 
 export default function Chat({ tokenPayload, jsonWebToken }: ChatProps) {
-  const { directLine, store, conversation, locale, webSpeechPonyfillFactory } =
+  const { directLine, store, conversation, locale, webSpeechPonyfillFactory, streaming } =
     useMemo(() => {
       const localeController = createLocaleController(
         tokenPayload.locale ?? 'en-US',
@@ -47,6 +50,7 @@ export default function Chat({ tokenPayload, jsonWebToken }: ChatProps) {
         directLine: nextDirectLine,
         store: nextStore,
         conversation: nextConversation,
+        streaming,
         locale: localeController,
         // MicrophoneButton renders only when the browser supports speech, so enabling the
         // ponyfill here degrades gracefully to a no-op on unsupported browsers.
@@ -56,6 +60,13 @@ export default function Chat({ tokenPayload, jsonWebToken }: ChatProps) {
         ),
       };
     }, [tokenPayload, jsonWebToken]);
+
+  // Typing dots stay for bots that never stream; they go away on the first stream frame.
+  const [streams, setStreams] = useState(false);
+  useEffect(() => {
+    setStreams(streaming.hasSeenStream());
+    return streaming.onFirstStream(() => setStreams(true));
+  }, [streaming]);
 
   useEffect(() => {
     const subscription = directLine.connectionStatus$.subscribe(
@@ -82,6 +93,9 @@ export default function Chat({ tokenPayload, jsonWebToken }: ChatProps) {
         adaptiveCardsHostConfig={adaptiveCardsHostConfig}
         activityMiddleware={activityMiddleware as never}
         sendBoxMiddleware={sendBoxMiddleware as never}
+        {...(streams && {
+          typingIndicatorMiddleware: hideTypingIndicator as never,
+        })}
         userID={tokenPayload.userId}
         username={tokenPayload.userName}
         locale={locale.get()}

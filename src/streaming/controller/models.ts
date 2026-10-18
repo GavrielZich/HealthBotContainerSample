@@ -10,6 +10,10 @@ export type StreamDirective =
 export interface StreamController {
   resetForNewTurn(store: WebChatStore): void;
   handleIncoming(store: WebChatStore, activity: unknown): StreamDirective;
+  /** True once the bot has sent a stream frame, i.e. it shows its own progress. */
+  hasSeenStream(): boolean;
+  /** Calls the listener when the first stream frame arrives; returns an unsubscribe. */
+  onFirstStream(listener: () => void): () => void;
 }
 
 export const MAX_PROGRESS_LINE_VISIBLE_MS = 5 * 60 * 1000;

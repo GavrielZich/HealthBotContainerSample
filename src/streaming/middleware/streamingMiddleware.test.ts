@@ -36,6 +36,8 @@ function fakeStreaming(
     handleIncoming() {
       return directive;
     },
+    hasSeenStream: () => false,
+    onFirstStream: () => () => {},
   };
 }
 

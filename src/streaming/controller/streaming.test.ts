@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 import { createController } from "./streaming";
 import {
@@ -265,6 +265,7 @@ function createHarness({ replay = false }: { replay?: boolean } = {}) {
   }
 
   return {
+    streaming,
     forwarded,
     incoming,
     streamEvent,
@@ -282,6 +283,32 @@ function createHarness({ replay = false }: { replay?: boolean } = {}) {
     latestState,
   };
 }
+
+describe("stream detection", () => {
+  it("has not seen a stream for a bot that only sends typing and messages", () => {
+    const { streaming, incoming } = createHarness();
+    incoming({ type: "typing" });
+    expect(streaming.hasSeenStream()).toBe(false);
+  });
+
+  it("notifies once when the first stream frame arrives", () => {
+    const { streaming, streamEvent } = createHarness();
+    const listener = vi.fn();
+    streaming.onFirstStream(listener);
+    streamEvent({ type: "RUN_STARTED", runId: "run_1" });
+    streamEvent({ type: "RUN_STARTED", runId: "run_1" });
+    expect(streaming.hasSeenStream()).toBe(true);
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops notifying after unsubscribe", () => {
+    const { streaming, streamEvent } = createHarness();
+    const listener = vi.fn();
+    streaming.onFirstStream(listener)();
+    streamEvent({ type: "RUN_STARTED", runId: "run_1" });
+    expect(listener).not.toHaveBeenCalled();
+  });
+});
 
 describe("streaming typing indicator", () => {
   it("passes typing before a stream starts", () => {
