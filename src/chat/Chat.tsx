@@ -61,10 +61,11 @@ export default function Chat({ tokenPayload, jsonWebToken }: ChatProps) {
       };
     }, [tokenPayload, jsonWebToken]);
 
-  // Typing dots stay for bots that never stream; they go away on the first stream frame.
-  const [streams, setStreams] = useState(false);
+  // The backend says upfront whether the bot streams, because its typing activity can arrive
+  // before the first stream frame. Detecting a frame covers a bot streaming despite the flag.
+  const [streams, setStreams] = useState(tokenPayload.streaming !== false);
   useEffect(() => {
-    setStreams(streaming.hasSeenStream());
+    setStreams((current) => current || streaming.hasSeenStream());
     return streaming.onFirstStream(() => setStreams(true));
   }, [streaming]);
 

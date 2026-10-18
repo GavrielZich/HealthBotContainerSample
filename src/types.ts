@@ -12,6 +12,8 @@ export interface TokenPayload {
   locale?: string;
   connectorToken: string;
   directLineURI?: string;
+  // The bot streams its progress, so Web Chat's typing dots are redundant.
+  streaming?: boolean;
   location?: GeoLocation;
 }
 

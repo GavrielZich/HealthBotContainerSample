@@ -113,6 +113,8 @@ app.post('/chatBot',  async function(req, res) {
             response['location'] = {lat: req.query.lat, long: req.query.long};
         }
         response['directLineURI'] = DIRECTLINE_ENDPOINT_URI;
+        // The client hides the typing dots for streaming bots; set STREAMING_ANSWERS=false for a bot that does not stream.
+        response['streaming'] = process.env.STREAMING_ANSWERS !== 'false';
         const jwtToken = jwt.sign(response, AUTH_JWT_SECRET);
         res.send(jwtToken);
     }
