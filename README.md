@@ -8,6 +8,8 @@ A simple web page that allows users to communicate with the [Azure Health Bot](h
 
 1.Deploy the website:
 
+**Choose `linux` as the Operating System** on the deployment form. Linux is the default and the only supported option for this sample. Do not switch it to Windows.
+
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmicrosoft%2FHealthBotContainerSample%2Fmaster%2Fazuredeploy.json)
 
 2.Set the following environment variables:
@@ -55,6 +57,10 @@ The chat hides Web Chat's typing dots because a streaming bot shows its own prog
 
 ## Streaming responses
 This sample supports streaming bot responses, so answers appear progressively as they are generated instead of all at once. Streaming is driven by the bot — it activates automatically when the **streaming feature flag is enabled** for your Health Bot instance. When the flag is off, the sample falls back to the standard single-response behavior with no changes required.
+
+To enable streaming, turn the feature on in the Management Portal: go to `Configuration` > `Healthcare Orchestrator` and set the **Streaming answers** toggle to `Enabled`. The toggle appears only when streaming is available for your bot. If you don't see it, contact your Health Bot administrator.
+
+![Streaming answers toggle in Configuration > Healthcare Orchestrator](/streaming-answers.png)
 
 ## Agent webchat
 If the agent webchat sample is also required, [switch to the live agent handoff branch](https://github.com/Microsoft/HealthBotContainerSample/tree/live_agent_handoff)
