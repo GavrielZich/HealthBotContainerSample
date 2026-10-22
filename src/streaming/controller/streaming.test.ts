@@ -29,7 +29,7 @@ interface StreamEvent {
 
 interface StreamEnvelope {
   runId: string;
-  event: StreamEvent;
+  events: StreamEvent[];
 }
 
 interface Attachment {
@@ -225,12 +225,18 @@ function createHarness({ replay = false }: { replay?: boolean } = {}) {
     return action;
   };
 
-  const streamEvent = (event: StreamEvent, runId = "run_1"): DirectLineAction =>
+  const streamBatch = (
+    events: StreamEvent[],
+    runId = "run_1"
+  ): DirectLineAction =>
     incoming({
       type: "message",
       from: { role: "bot" },
-      value: { stream: { runId, event } },
+      value: { stream: { runId, events } },
     });
+
+  const streamEvent = (event: StreamEvent, runId = "run_1"): DirectLineAction =>
+    streamBatch([event], runId);
 
   const streamDelta = (delta: string, runId = "run_1"): DirectLineAction =>
     streamEvent(
@@ -268,6 +274,7 @@ function createHarness({ replay = false }: { replay?: boolean } = {}) {
     streaming,
     forwarded,
     incoming,
+    streamBatch,
     streamEvent,
     streamDelta,
     sendUserMessage,
@@ -307,6 +314,34 @@ describe("stream detection", () => {
     streaming.onFirstStream(listener)();
     streamEvent({ type: "RUN_STARTED", runId: "run_1" });
     expect(listener).not.toHaveBeenCalled();
+  });
+});
+
+describe("batched stream activities", () => {
+  it("applies every event of a batch in order and swallows the activity", () => {
+    const { forwarded, streamBatch, latestState, flushReveals } =
+      createHarness();
+    const action = streamBatch([
+      { type: "RUN_STARTED", runId: "run_1" },
+      { type: "TEXT_MESSAGE_START", messageId: "msg_1" },
+      { type: "TEXT_MESSAGE_CONTENT", messageId: "msg_1", delta: "Hi" },
+      { type: "TEXT_MESSAGE_END", messageId: "msg_1" },
+      { type: "RUN_FINISHED", runId: "run_1" },
+    ]);
+    expect(forwarded).not.toContain(action);
+    flushReveals();
+    expect(latestState()?.answerText).toBe("Hi");
+  });
+
+  it("notifies first-stream once for a multi-event frame", () => {
+    const { streaming, streamBatch } = createHarness();
+    const listener = vi.fn();
+    streaming.onFirstStream(listener);
+    streamBatch([
+      { type: "RUN_STARTED", runId: "run_1" },
+      { type: "TEXT_MESSAGE_START", messageId: "msg_1" },
+    ]);
+    expect(listener).toHaveBeenCalledTimes(1);
   });
 });
 

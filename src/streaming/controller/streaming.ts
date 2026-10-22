@@ -148,6 +148,36 @@ export function createController(deps: Timers = defaultDeps): StreamController {
     run.live = true;
   }
 
+  function applyStreamEvent(store: WebChatStore, ev: AnyAguiEvent) {
+    state = reduceEvent(state, ev).state;
+    run.awaitingFinal = true;
+    if (!run.live) {
+      return;
+    }
+    // Arm the safety valve for every stream event: a run made only of events the reducer
+    // ignores would otherwise leave this turn awaiting a final activity forever.
+    armProgressExpiry(store);
+
+    if (ev.type === EventType.RUN_ERROR) {
+      reveal.stop();
+      reveal.sync(state);
+      const pending = !reveal.isDone();
+      reveal.flush();
+      if (pending && run.bubbleDispatched) {
+        const view = reveal.view(state);
+        publish(
+          store,
+          view.answerText ? view : { ...view, variant: "progress" }
+        );
+      }
+      return;
+    }
+
+    reveal.sync(state);
+    reveal.start(() => publish(store));
+    publish(store);
+  }
+
   function handleIncoming(
     store: WebChatStore,
     activity: unknown
@@ -183,37 +213,12 @@ export function createController(deps: Timers = defaultDeps): StreamController {
         cancelReveal();
       }
 
-      const ev = stream.event;
       if (!run.progressId) {
         run.progressId = DEFAULT_PROGRESS_ID;
       }
-      state = reduceEvent(state, ev as AnyAguiEvent).state;
-      run.awaitingFinal = true;
-      if (!run.live) {
-        return "swallow";
+      for (const ev of stream.events) {
+        applyStreamEvent(store, ev);
       }
-      // Arm the safety valve for every stream frame: a run made only of events the reducer
-      // ignores would otherwise leave this turn awaiting a final activity forever.
-      armProgressExpiry(store);
-
-      if (ev.type === EventType.RUN_ERROR) {
-        reveal.stop();
-        reveal.sync(state);
-        const pending = !reveal.isDone();
-        reveal.flush();
-        if (pending && run.bubbleDispatched) {
-          const view = reveal.view(state);
-          publish(
-            store,
-            view.answerText ? view : { ...view, variant: "progress" }
-          );
-        }
-        return "swallow";
-      }
-
-      reveal.sync(state);
-      reveal.start(() => publish(store));
-      publish(store);
       return "swallow";
     }
 

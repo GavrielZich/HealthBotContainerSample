@@ -125,12 +125,12 @@ export interface CoreEventShape {
 
 export interface StreamEnvelope {
   runId?: string;
-  event?: AnyAguiEvent;
+  events: AnyAguiEvent[];
 }
 
 export interface ParsedStreamFrame {
   runId?: string;
-  event: AnyAguiEvent;
+  events: AnyAguiEvent[];
 }
 
 // ------------------------------------------------------------ event interpretation
