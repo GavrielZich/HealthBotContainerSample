@@ -47,7 +47,9 @@ async function requestToken(location?: GeoLocation): Promise<string> {
 // The JWT payload is base64url in the middle segment; decode it to read the user and
 // Direct Line connection details the backend embedded.
 function decodeTokenPayload(jsonWebToken: string): TokenPayload {
-  return JSON.parse(atob(jsonWebToken.split('.')[1])) as TokenPayload;
+  const base64 = jsonWebToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+  const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes)) as TokenPayload;
 }
 
 // Acquire the Direct Line token once on mount. When `?shareLocation` is present we

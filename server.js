@@ -120,7 +120,7 @@ app.post('/chatBot',  async function(req, res) {
     }
     catch (err) {
         appConfig.isHealthy = false;
-        res.status(err.statusCode).send();
+        res.status(err.statusCode || 502).send();
         console.log("failed");
     }
 });
