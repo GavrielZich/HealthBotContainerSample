@@ -77,7 +77,7 @@
     "alwaysOn": true,
     "skuCode": "[parameters('skuName')]",
     "numberOfWorkers": "[parameters('numberOfInstances')]",
-    "linuxFxVersion": "NODE|20-lts",
+    "linuxFxVersion": "NODE|24-lts",
     "hostingPlanNameLinux": "[concat('plan-linux-', parameters('siteName'))]",
     "hostingPlanNameWin": "[concat('plan-win-', parameters('siteName'))]",
     "kind": "[if(equals(parameters('operatingSystem'), 'windows'), 'app', 'linux')]",
@@ -88,7 +88,7 @@
     "workerSize": "0",
     "workerSizeId": "0",
     "hostingEnvironment": "",
-    "nodeVersion": "~20",
+    "nodeVersion": "~24",
     "currentStack": "node"
   },
   "resources": [
