@@ -26,27 +26,8 @@ if (!globalThis.crypto?.getRandomValues) {
 // which also sidesteps endpoint-security quarantines of core-js internals.
 const isGallery = process.env.GALLERY === '1';
 
-// The Speech SDK's CommonJS build (`distrib/lib`) has circular `require`s. Rollup's CommonJS
-// transform can order those modules differently from one build to the next, and an unlucky
-// order ships a bundle that throws "Class extends value undefined" on load (blank page).
-// Pointing the SDK at its pre-bundled browser build keeps the module graph fixed. Resolving
-// relative to the importer keeps each consumer on its own SDK version.
-const SPEECH_SDK = 'microsoft-cognitiveservices-speech-sdk';
-const speechSdkBrowserBundle = {
-  name: 'speech-sdk-browser-bundle',
-  enforce: 'pre' as const,
-  async resolveId(this: any, source: string, importer?: string) {
-    if (source !== SPEECH_SDK || !importer) {
-      return null;
-    }
-    return this.resolve(`${SPEECH_SDK}/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle.js`, importer, {
-      skipSelf: true,
-    });
-  },
-};
-
 export default defineConfig({
-  plugins: [speechSdkBrowserBundle, react()],
+  plugins: [react()],
   define: {
     global: 'globalThis',
   },
@@ -56,6 +37,11 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    // The Speech SDK's CommonJS build has circular `require`s. With the default hoisting, Rollup can
+    // order those modules differently between builds, and an unlucky order throws
+    // "Class extends value undefined" on load (blank page). Strict requires evaluates each CJS
+    // module lazily, at its first `require`, so the order no longer depends on the build.
+    commonjsOptions: { strictRequires: true },
     // Do not emit production source maps: server.js serves `dist/` statically, so
     // published `.map` files would expose the original source. Flip to 'hidden' if
     // you upload maps to an error-monitoring service out-of-band.
