@@ -34,6 +34,7 @@
     "dev:server": "node server.js",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
+    "postinstall": "npm run build",
     "start": "node server.js",
     "test": "vitest run",
     "test:watch": "vitest"

@@ -8,7 +8,7 @@ WORKDIR /usr/src/app
 # where available (npm@5+)
 COPY package*.json ./
 
-# Skip lifecycle scripts here: the client build needs the sources, which are copied below.
+# Skip lifecycle scripts here: the client build (`postinstall`) needs the sources, which are copied below.
 RUN npm ci --ignore-scripts
 
 # Bundle app source
