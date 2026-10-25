@@ -26,8 +26,27 @@ if (!globalThis.crypto?.getRandomValues) {
 // which also sidesteps endpoint-security quarantines of core-js internals.
 const isGallery = process.env.GALLERY === '1';
 
+// The Speech SDK's CommonJS build (`distrib/lib`) has circular `require`s. Rollup's CommonJS
+// transform can order those modules differently from one build to the next, and an unlucky
+// order ships a bundle that throws "Class extends value undefined" on load (blank page).
+// Pointing the SDK at its pre-bundled browser build keeps the module graph fixed. Resolving
+// relative to the importer keeps each consumer on its own SDK version.
+const SPEECH_SDK = 'microsoft-cognitiveservices-speech-sdk';
+const speechSdkBrowserBundle = {
+  name: 'speech-sdk-browser-bundle',
+  enforce: 'pre' as const,
+  async resolveId(this: any, source: string, importer?: string) {
+    if (source !== SPEECH_SDK || !importer) {
+      return null;
+    }
+    return this.resolve(`${SPEECH_SDK}/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle.js`, importer, {
+      skipSelf: true,
+    });
+  },
+};
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [speechSdkBrowserBundle, react()],
   define: {
     global: 'globalThis',
   },
