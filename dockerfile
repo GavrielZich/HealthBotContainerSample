@@ -8,15 +8,14 @@ WORKDIR /usr/src/app
 # where available (npm@5+)
 COPY package*.json ./
 
-RUN npm install
-# If you are building your code for production
-# RUN npm install --only=production
+# Skip lifecycle scripts here: the client build (`postinstall`) needs the sources, which are copied below.
+RUN npm ci --ignore-scripts
 
 # Bundle app source
 COPY . .
 
-# The React client (./dist) is built automatically by the `postinstall` hook
-# during `npm install` above, and is served by server.js.
+# Build the React client into ./dist, which server.js serves.
+RUN npm run build
 
 # Delete the web.config file, only needed for IIS
 RUN rm ./Web.config
